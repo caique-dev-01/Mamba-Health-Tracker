@@ -1,11 +1,14 @@
-<script setup lang="ts"></script>
-
 <template>
-  <h1>You did it!</h1>
-  <p>
-    Visit <a href="https://vuejs.org/" target="_blank" rel="noopener">vuejs.org</a> to read the
-    documentation
-  </p>
+  <div class="flex flex-col items-center min-h-screen">
+    <HeaderApp />
+    <main class="flex-1 flex flex-col w-full px-4 py-6">
+      <RouterView />
+    </main>
+    <FooterApp />
+  </div>
 </template>
 
-<style scoped></style>
+<script setup lang="ts">
+import HeaderApp from './components/Header.vue'
+import FooterApp from './components/Footer.vue'
+</script>
