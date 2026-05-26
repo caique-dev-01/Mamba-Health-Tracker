@@ -9,6 +9,16 @@
 </template>
 
 <script setup lang="ts">
+import { onMounted } from 'vue'
 import HeaderApp from './components/Header.vue'
 import FooterApp from './components/Footer.vue'
+import { useFastingStore } from '@/stores/fastingStore'
+import { useNutritionStore } from '@/stores/nutritionStore'
+
+const fasting = useFastingStore()
+const nutrition = useNutritionStore()
+onMounted(() => {
+  fasting.loadFromStorage()
+  nutrition.loadFromStorage()
+})
 </script>

@@ -1,19 +1,52 @@
+<script setup lang="ts">
+import { ref } from 'vue'
+import { format } from 'date-fns'
+import { useNutritionStore } from '@/stores/nutritionStore'
+
+const nutrition = useNutritionStore()
+
+const mealName = ref('')
+const mealCalories = ref<number | null>(null)
+
+function handleSubmit() {
+  if (!mealName.value.trim() || !mealCalories.value) return
+  nutrition.addMeal(mealName.value.trim(), mealCalories.value)
+  mealName.value = ''
+  mealCalories.value = null
+}
+
+function formatTime(iso: string) {
+  return format(new Date(iso), 'HH:mm')
+}
+</script>
+
 <template>
   <main class="min-h-screen p-6">
     <section class="mb-8">
-      <h1 class="text-4xl font-bold">Módulo de Nutrição</h1>
+      <h1 class="text-4xl font-bold">Nutrição</h1>
       <p class="text-gray-600 mt-2">Controle diário de consumo calórico</p>
     </section>
 
     <section class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
       <div class="bg-white rounded-3xl shadow-md p-6">
-        <p
-          class="text-xs font-medium text-zinc-400 dark:text-zinc-500 mb-1 uppercase tracking-wide"
-        >
-          Meta diária
-        </p>
+        <p class="text-xs font-medium text-zinc-400 mb-1 uppercase tracking-wide">Meta diária</p>
         <p class="text-2xl font-semibold text-green-500 leading-none">
-          2.000 <span class="text-sm font-normal text-green-400">kcal</span>
+          {{ nutrition.dailyGoal.toLocaleString('pt-BR') }}
+          <span class="text-sm font-normal text-green-400">kcal</span>
+        </p>
+      </div>
+      <div class="bg-white rounded-3xl shadow-md p-6">
+        <p class="text-xs font-medium text-zinc-400 mb-1 uppercase tracking-wide">Consumido hoje</p>
+        <p class="text-2xl font-semibold text-green-500 leading-none">
+          {{ nutrition.totalCalories.toLocaleString('pt-BR') }}
+          <span class="text-sm font-normal text-green-400">kcal</span>
+        </p>
+      </div>
+      <div class="bg-white rounded-3xl shadow-md p-6">
+        <p class="text-xs font-medium text-zinc-400 mb-1 uppercase tracking-wide">Restante</p>
+        <p class="text-2xl font-semibold text-green-500 leading-none">
+          {{ nutrition.remaining.toLocaleString('pt-BR') }}
+          <span class="text-sm font-normal text-green-400">kcal</span>
         </p>
       </div>
     </section>
@@ -27,11 +60,11 @@
           </div>
         </div>
 
-        <form class="flex flex-col gap-5">
+        <form class="flex flex-col gap-5" @submit.prevent="handleSubmit">
           <div class="flex flex-col gap-2">
             <p class="text-sm font-medium text-green-700">Nome da refeição</p>
-
             <input
+              v-model="mealName"
               type="text"
               placeholder="Ex: Café da manhã"
               class="w-full bg-gray-50 border border-gray-200 rounded-2xl px-4 py-3 text-gray-700 placeholder:text-gray-400 outline-none focus:border-gray-400 focus:ring-2 focus:ring-gray-100 transition"
@@ -40,14 +73,16 @@
 
           <div class="flex flex-col gap-2">
             <p class="text-sm font-medium text-green-700">Quantidade de calorias</p>
-
             <input
+              v-model.number="mealCalories"
               type="number"
               placeholder="Ex: 450"
               class="w-full bg-gray-50 border border-gray-200 rounded-2xl px-4 py-3 text-gray-700 placeholder:text-gray-400 outline-none focus:border-gray-400 focus:ring-2 focus:ring-gray-100 transition"
             />
           </div>
+
           <button
+            type="submit"
             class="bg-gray-700 hover:bg-gray-800 text-white font-semibold rounded-2xl py-3 transition-all duration-300 shadow-md hover:shadow-xl"
           >
             Registrar Refeição
@@ -65,13 +100,13 @@
 
         <div class="mb-4">
           <div class="flex justify-between mb-2">
-            <span class="text-sm text-gray-500"> 1450 / 2000 kcal </span>
-            <span class="text-sm font-semibold text-green-700"> 72% </span>
+            <span class="text-sm text-gray-500">{{ nutrition.totalCalories }} / {{ nutrition.dailyGoal }} kcal</span>
+            <span class="text-sm font-semibold text-green-700">{{ nutrition.progressPercent }}%</span>
           </div>
           <div class="w-full bg-gray-200 rounded-full h-5 overflow-hidden">
             <div
               class="bg-green-800 h-full rounded-full transition-all duration-500"
-              style="width: 72%"
+              :style="{ width: nutrition.progressPercent + '%' }"
             ></div>
           </div>
         </div>
@@ -82,8 +117,8 @@
             <div>
               <p class="font-semibold text-green-500">Ótimo progresso!</p>
               <p class="text-sm text-gray-600 flex gap-1 items-center">
-                Você ainda pode consumir<span class="font-semibold text-green-800"> 550 kcal</span
-                >hoje.
+                Você ainda pode consumir
+                <span class="font-semibold text-green-800"> {{ nutrition.remaining }} kcal</span> hoje.
               </p>
             </div>
           </div>
@@ -91,30 +126,28 @@
       </div>
     </section>
 
-    <section>
+    <section v-if="nutrition.meals.length > 0">
       <div class="bg-white rounded-3xl shadow-md p-6 mt-6">
         <h2 class="text-2xl font-bold text-gray-800 mb-4">Refeições Registradas</h2>
         <div class="space-y-4">
-          <div class="flex justify-between items-center border-b border-gray-100 pb-4">
+          <div
+            v-for="meal in nutrition.meals"
+            :key="meal.id"
+            class="flex justify-between items-center border-b border-gray-100 pb-4"
+          >
             <div>
-              <p class="font-semibold text-gray-800">Café da manhã</p>
-              <p class="text-sm text-gray-500">08:30 AM</p>
+              <p class="font-semibold text-gray-800">{{ meal.name }}</p>
+              <p class="text-sm text-gray-500">{{ formatTime(meal.registeredAt) }}</p>
             </div>
-            <span class="font-semibold text-green-700">450 kcal</span>
-          </div>
-          <div class="flex justify-between items-center border-b border-gray-100 pb-4">
-            <div>
-              <p class="font-semibold text-gray-800">Almoço</p>
-              <p class="text-sm text-gray-500">01:15 PM</p>
+            <div class="flex items-center gap-4">
+              <span class="font-semibold text-green-700">{{ meal.calories }} kcal</span>
+              <button
+                @click="nutrition.removeMeal(meal.id)"
+                class="text-gray-400 hover:text-red-500 transition text-xs"
+              >
+                remover
+              </button>
             </div>
-            <span class="font-semibold text-green-700">680 kcal</span>
-          </div>
-          <div class="flex justify-between items-center border-b border-gray-100 pb-4">
-            <div>
-              <p class="font-semibold text-gray-800">Jantar</p>
-              <p class="text-sm text-gray-500">07:45 PM</p>
-            </div>
-            <span class="font-semibold text-green-700">720 kcal</span>
           </div>
         </div>
       </div>
